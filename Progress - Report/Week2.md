@@ -18,11 +18,4 @@
 - Liên kết giữa menu và file sitemap
 
  
-            <button type="submit" class="btn btn-success w-100">Đăng nhập</button>
-            <div class="text-center mt-3">
-                <a href="/Account/ForgotPassword" class="text-decoration-none">Quên mật khẩu?</a><br>
-                <a href="/Account/Register" class="text-decoration-none">Chưa có tài khoản? Đăng ký ngay</a>
-            </div>
-        </form>
-    </div>
-</div>
+           
