@@ -1,0 +1,175 @@
+@model IEnumerable<HealthForumMVC.Models.Report>
+@{
+    ViewData["Title"] = "Quản lý báo cáo";
+    var currentPage = (int)(ViewData["CurrentPage"] ?? 1);
+    var totalPages = (int)(ViewData["TotalPages"] ?? 1);
+}
+
+<div class="container">
+    <h2 class="text-white fw-bold mb-4">
+        <i class="bi bi-flag me-2"></i>Quản lý báo cáo
+    </h2>
+
+    <div class="card shadow-lg">
+        <div class="card-body">
+            @if (Model != null && Model.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Loại</th>
+                                <th>Người báo cáo</th>
+                                <th>Lý do</th>
+                                <th>Trạng thái</th>
+                                <th>Ngày tạo</th>
+                                <th>Hành động</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var report in Model)
+                            {
+                                <tr>
+                                    <td>@report.Id</td>
+                                    <td>
+                                        @if (report.Type == HealthForumMVC.Models.ReportType.Topic)
+                                        {
+                                            <span class="badge bg-primary">
+                                                <i class="bi bi-chat-dots me-1"></i>Chủ đề
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-info">
+                                                <i class="bi bi-chat-left-text me-1"></i>Phản hồi
+                                            </span>
+                                        }
+                                    </td>
+                                    <td>@report.Reporter?.DisplayName</td>
+                                    <td>
+                                        <small>@(report.Reason.Length > 50 ? report.Reason.Substring(0, 50) + "..." : report.Reason)</small>
+                                    </td>
+                                    <td>
+                                        @switch (report.Status)
+                                        {
+                                            case HealthForumMVC.Models.ReportStatus.Pending:
+                                                <span class="badge bg-warning">Chờ xử lý</span>
+                                                break;
+                                            case HealthForumMVC.Models.ReportStatus.Reviewed:
+                                                <span class="badge bg-info">Đã xem</span>
+                                                break;
+                                            case HealthForumMVC.Models.ReportStatus.Resolved:
+                                                <span class="badge bg-success">Đã xử lý</span>
+                                                break;
+                                            case HealthForumMVC.Models.ReportStatus.Dismissed:
+                                                <span class="badge bg-secondary">Đã bỏ qua</span>
+                                                break;
+                                        }
+                                    </td>
+                                    <td>
+                                        <small>@report.CreatedDate.ToString("dd/MM/yyyy HH:mm")</small>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            @if (report.Type == HealthForumMVC.Models.ReportType.Topic && report.Topic != null)
+                                            {
+                                                <a href="@Url.Action("Details", "Topics", new { id = report.TopicId })" 
+                                                   class="btn btn-outline-primary" target="_blank">
+                                                    <i class="bi bi-eye"></i>
+                                                </a>
+                                            }
+                                            @if (report.Status == HealthForumMVC.Models.ReportStatus.Pending)
+                                            {
+                                                <button class="btn btn-outline-success" 
+                                                        onclick="reviewReport(@report.Id, 'resolve')">
+                                                    <i class="bi bi-check-circle"></i>
+                                                </button>
+                                                <button class="btn btn-outline-secondary" 
+                                                        onclick="reviewReport(@report.Id, 'dismiss')">
+                                                    <i class="bi bi-x-circle"></i>
+                                                </button>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                @if (totalPages > 1)
+                {
+                    <nav class="mt-4">
+                        <ul class="pagination justify-content-center">
+                            @if (currentPage > 1)
+                            {
+                                <li class="page-item">
+                                    <a class="page-link" href="@Url.Action("Reports", new { page = currentPage - 1 })">
+                                        <i class="bi bi-chevron-left"></i>
+                                    </a>
+                                </li>
+                            }
+
+                            @for (int i = Math.Max(1, currentPage - 2); i <= Math.Min(totalPages, currentPage + 2); i++)
+                            {
+                                <li class="page-item @(i == currentPage ? "active" : "")">
+                                    <a class="page-link" href="@Url.Action("Reports", new { page = i })">
+                                        @i
+                                    </a>
+                                </li>
+                            }
+
+                            @if (currentPage < totalPages)
+                            {
+                                <li class="page-item">
+                                    <a class="page-link" href="@Url.Action("Reports", new { page = currentPage + 1 })">
+                                        <i class="bi bi-chevron-right"></i>
+                                    </a>
+                                </li>
+                            }
+                        </ul>
+                    </nav>
+                }
+            }
+            else
+            {
+                <div class="text-center py-5">
+                    <i class="bi bi-inbox display-1 text-muted"></i>
+                    <p class="text-muted mt-3">Không có báo cáo nào.</p>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="mt-3">
+        <a asp-action="Index" class="btn btn-outline-light">
+            <i class="bi bi-arrow-left me-2"></i>Quay lại Dashboard
+        </a>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function reviewReport(reportId, action) {
+            var note = prompt('Nhập ghi chú (tùy chọn):');
+            
+            $.post('@Url.Action("ReviewReport", "Admin")', 
+                { 
+                    id: reportId, 
+                    action: action,
+                    adminNote: note
+                }, 
+                function(response) {
+                    if (response.success) {
+                        alert(response.message);
+                        location.reload();
+                    } else {
+                        alert(response.message);
+                    }
+                }
+            );
+        }
+    </script>
+}

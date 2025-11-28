@@ -1,0 +1,78 @@
+@model HealthForumMVC.Models.Topic
+@{
+    ViewData["Title"] = "Tạo chủ đề mới";
+    var categories = ViewData["Categories"] as List<HealthForumMVC.Models.Category>;
+}
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-lg fade-in">
+                <div class="card-header">
+                    <h3 class="mb-0">
+                        <i class="bi bi-plus-circle me-2"></i>Tạo chủ đề mới
+                    </h3>
+                </div>
+                <div class="card-body p-4">
+                    <form asp-action="Create" method="post">
+                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+                        
+                        <div class="mb-4">
+                            <label asp-for="Title" class="form-label"></label>
+                            <input asp-for="Title" class="form-control form-control-lg" 
+                                   placeholder="Nhập tiêu đề chủ đề của bạn..." />
+                            <span asp-validation-for="Title" class="text-danger small"></span>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label asp-for="CategoryId" class="form-label">Chuyên mục</label>
+                            <select asp-for="CategoryId" class="form-select">
+                                <option value="">-- Chọn chuyên mục --</option>
+                                @if (categories != null)
+                                {
+                                    foreach (var category in categories)
+                                    {
+                                        <option value="@category.Id">
+                                            @category.Name - @category.Description
+                                        </option>
+                                    }
+                                }
+                            </select>
+                            <span asp-validation-for="CategoryId" class="text-danger small"></span>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label asp-for="Content" class="form-label"></label>
+                            <textarea asp-for="Content" class="form-control" rows="10" 
+                                      placeholder="Viết nội dung chi tiết cho chủ đề của bạn..."></textarea>
+                            <span asp-validation-for="Content" class="text-danger small"></span>
+                            <small class="text-muted">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Hãy mô tả rõ ràng và chi tiết để nhận được phản hồi tốt nhất.
+                            </small>
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <i class="bi bi-lightbulb me-2"></i>
+                            <strong>Lưu ý:</strong> Vui lòng tuân thủ quy định cộng đồng. 
+                            Không đăng nội dung vi phạm pháp luật, spam hoặc không phù hợp.
+                        </div>
+                        
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg flex-grow-1">
+                                <i class="bi bi-send me-2"></i>Đăng chủ đề
+                            </button>
+                            <a asp-action="Index" class="btn btn-outline-secondary btn-lg">
+                                <i class="bi bi-x-circle me-2"></i>Hủy
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

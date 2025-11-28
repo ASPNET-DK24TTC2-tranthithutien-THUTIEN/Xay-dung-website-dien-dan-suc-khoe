@@ -1,0 +1,169 @@
+@model IEnumerable<HealthForumMVC.Models.ApplicationUser>
+@{
+    ViewData["Title"] = "Quản lý người dùng";
+    var currentPage = (int)(ViewData["CurrentPage"] ?? 1);
+    var totalPages = (int)(ViewData["TotalPages"] ?? 1);
+    var searchQuery = ViewData["SearchQuery"] as string;
+}
+
+<div class="container">
+    <h2 class="text-white fw-bold mb-4">
+        <i class="bi bi-people me-2"></i>Quản lý người dùng
+    </h2>
+
+    <!-- Search -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" asp-action="Users">
+                <div class="row g-3">
+                    <div class="col-md-10">
+                        <div class="search-box">
+                            <i class="bi bi-search"></i>
+                            <input type="text" name="searchQuery" value="@searchQuery" 
+                                   class="form-control" placeholder="Tìm kiếm theo email hoặc tên...">
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-funnel me-2"></i>Tìm
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow-lg">
+        <div class="card-body">
+            @if (Model != null && Model.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Avatar</th>
+                                <th>Tên hiển thị</th>
+                                <th>Email</th>
+                                <th>Ngày tham gia</th>
+                                <th>Trạng thái</th>
+                                <th>Hành động</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var user in Model)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="reply-avatar" style="width: 40px; height: 40px;">
+                                            @user.DisplayName?.Substring(0, 1).ToUpper()
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <strong>@user.DisplayName</strong>
+                                    </td>
+                                    <td>@user.Email</td>
+                                    <td>
+                                        <small>@user.JoinedDate.ToString("dd/MM/yyyy")</small>
+                                    </td>
+                                    <td>
+                                        @if (user.IsBanned)
+                                        {
+                                            <span class="badge bg-danger">Đã khóa</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-success">Hoạt động</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (user.Email != "admin@healthforum.com")
+                                        {
+                                            <button class="btn btn-sm @(user.IsBanned ? "btn-success" : "btn-danger")" 
+                                                    onclick="banUser('@user.Id', @(user.IsBanned ? "false" : "true"))">
+                                                <i class="bi @(user.IsBanned ? "bi-unlock" : "bi-lock")"></i>
+                                                @(user.IsBanned ? "Mở khóa" : "Khóa")
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-primary">Admin</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                @if (totalPages > 1)
+                {
+                    <nav class="mt-4">
+                        <ul class="pagination justify-content-center">
+                            @if (currentPage > 1)
+                            {
+                                <li class="page-item">
+                                    <a class="page-link" href="@Url.Action("Users", new { page = currentPage - 1, searchQuery })">
+                                        <i class="bi bi-chevron-left"></i>
+                                    </a>
+                                </li>
+                            }
+
+                            @for (int i = Math.Max(1, currentPage - 2); i <= Math.Min(totalPages, currentPage + 2); i++)
+                            {
+                                <li class="page-item @(i == currentPage ? "active" : "")">
+                                    <a class="page-link" href="@Url.Action("Users", new { page = i, searchQuery })">
+                                        @i
+                                    </a>
+                                </li>
+                            }
+
+                            @if (currentPage < totalPages)
+                            {
+                                <li class="page-item">
+                                    <a class="page-link" href="@Url.Action("Users", new { page = currentPage + 1, searchQuery })">
+                                        <i class="bi bi-chevron-right"></i>
+                                    </a>
+                                </li>
+                            }
+                        </ul>
+                    </nav>
+                }
+            }
+            else
+            {
+                <div class="text-center py-5">
+                    <i class="bi bi-inbox display-1 text-muted"></i>
+                    <p class="text-muted mt-3">Không tìm thấy người dùng nào.</p>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="mt-3">
+        <a asp-action="Index" class="btn btn-outline-light">
+            <i class="bi bi-arrow-left me-2"></i>Quay lại Dashboard
+        </a>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function banUser(userId, shouldBan) {
+            var action = shouldBan ? 'khóa' : 'mở khóa';
+            if (confirm('Bạn có chắc chắn muốn ' + action + ' người dùng này?')) {
+                $.post('@Url.Action("BanUser", "Admin")', 
+                    { userId: userId }, 
+                    function(response) {
+                        if (response.success) {
+                            alert(response.message);
+                            location.reload();
+                        } else {
+                            alert(response.message);
+                        }
+                    }
+                );
+            }
+        }
+    </script>
+}

@@ -1,0 +1,178 @@
+﻿@{
+    ViewData["Title"] = "Trang chủ";
+    var categories = ViewData["Categories"] as List<HealthForumMVC.Models.Category>;
+    var recentTopics = ViewData["RecentTopics"] as List<HealthForumMVC.Models.Topic>;
+    var popularTopics = ViewData["PopularTopics"] as List<HealthForumMVC.Models.Topic>;
+}
+
+<div class="container">
+    <!-- Hero Section -->
+    <div class="hero-section fade-in">
+        <div class="hero-content text-center">
+            <h1><i class="bi bi-heart-pulse-fill me-3"></i>Chào mừng đến với Diễn đàn Sức khỏe</h1>
+            <p class="lead mb-4">Nơi chia sẻ kiến thức, kinh nghiệm và hỗ trợ lẫn nhau về sức khỏe</p>
+            @if (User.Identity?.IsAuthenticated != true)
+            {
+                <div class="mt-4">
+                    <a asp-controller="Account" asp-action="Register" class="btn btn-light btn-lg me-3">
+                        <i class="bi bi-person-plus me-2"></i>Đăng ký ngay
+                    </a>
+                    <a asp-controller="Topics" asp-action="Index" class="btn btn-outline-light btn-lg">
+                        <i class="bi bi-search me-2"></i>Khám phá
+                    </a>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Categories -->
+    <div class="mb-5">
+        <h2 class="text-white mb-4 fw-bold">
+            <i class="bi bi-grid-3x3-gap me-2"></i>Chuyên mục
+        </h2>
+        <div class="row g-4">
+            @if (categories != null)
+            {
+                foreach (var category in categories)
+                {
+                    <div class="col-md-6 col-lg-4 col-xl-2-4">
+                        <a href="@Url.Action("Index", "Topics", new { categoryId = category.Id })" class="category-card">
+                            <div class="category-icon">
+                                <i class="bi @category.IconClass"></i>
+                            </div>
+                            <h5 class="fw-bold mb-2">@category.Name</h5>
+                            <p class="text-muted small mb-0">@category.Description</p>
+                        </a>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Recent Topics -->
+        <div class="col-lg-8 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <i class="bi bi-clock-history me-2"></i>Chủ đề mới nhất
+                </div>
+                <div class="card-body">
+                    @if (recentTopics != null && recentTopics.Any())
+                    {
+                        foreach (var topic in recentTopics)
+                        {
+                            <div class="topic-item">
+                                <a href="@Url.Action("Details", "Topics", new { id = topic.Id })" class="topic-title">
+                                    @topic.Title
+                                </a>
+                                <div class="topic-meta">
+                                    <span>
+                                        <i class="bi bi-person-circle"></i>
+                                        @topic.Author?.DisplayName
+                                    </span>
+                                    <span>
+                                        <i class="bi bi-folder"></i>
+                                        @topic.Category?.Name
+                                    </span>
+                                    <span>
+                                        <i class="bi bi-clock"></i>
+                                        @topic.CreatedDate.ToString("dd/MM/yyyy HH:mm")
+                                    </span>
+                                    <span>
+                                        <i class="bi bi-chat-dots"></i>
+                                        @topic.ReplyCount phản hồi
+                                    </span>
+                                    <span>
+                                        <i class="bi bi-eye"></i>
+                                        @topic.ViewCount lượt xem
+                                    </span>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <p class="text-muted text-center py-4">Chưa có chủ đề nào.</p>
+                    }
+                    <div class="text-center mt-4">
+                        <a asp-controller="Topics" asp-action="Index" class="btn btn-primary">
+                            <i class="bi bi-arrow-right me-2"></i>Xem tất cả chủ đề
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Popular Topics -->
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="bi bi-fire me-2"></i>Chủ đề phổ biến
+                </div>
+                <div class="card-body">
+                    @if (popularTopics != null && popularTopics.Any())
+                    {
+                        <div class="list-group list-group-flush">
+                            @foreach (var topic in popularTopics)
+                            {
+                                <a href="@Url.Action("Details", "Topics", new { id = topic.Id })" 
+                                   class="list-group-item list-group-item-action border-0 px-0">
+                                    <div class="d-flex w-100 justify-content-between align-items-start">
+                                        <h6 class="mb-1 fw-bold">@topic.Title</h6>
+                                    </div>
+                                    <small class="text-muted">
+                                        <i class="bi bi-eye me-1"></i>@topic.ViewCount lượt xem
+                                    </small>
+                                </a>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted text-center">Chưa có dữ liệu.</p>
+                    }
+                </div>
+            </div>
+
+            <!-- Quick Stats -->
+            <div class="card">
+                <div class="card-header">
+                    <i class="bi bi-graph-up me-2"></i>Thống kê
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-3">
+                        <span class="text-muted">Tổng chủ đề:</span>
+                        <strong>@(recentTopics?.Count ?? 0)</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-3">
+                        <span class="text-muted">Chuyên mục:</span>
+                        <strong>@(categories?.Count ?? 0)</strong>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Hoạt động:</span>
+                        <span class="badge bg-success">Đang hoạt động</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .col-xl-2-4 {
+        flex: 0 0 auto;
+        width: 20%;
+    }
+    
+    @@media (max-width: 1200px) {
+        .col-xl-2-4 {
+            width: 33.333%;
+        }
+    }
+    
+    @@media (max-width: 768px) {
+        .col-xl-2-4 {
+            width: 50%;
+        }
+    }
+</style>

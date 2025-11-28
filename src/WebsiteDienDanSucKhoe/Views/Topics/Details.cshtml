@@ -1,0 +1,311 @@
+@model HealthForumMVC.Models.Topic
+@{
+    ViewData["Title"] = Model.Title;
+    var hasLiked = (bool)(ViewData["HasLiked"] ?? false);
+}
+
+<div class="container">
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Topic Content -->
+            <div class="card shadow-lg mb-4 fade-in">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <span class="badge badge-category mb-2">
+                                <i class="bi @Model.Category?.IconClass me-1"></i>
+                                @Model.Category?.Name
+                            </span>
+                            <h1 class="h3 fw-bold mb-0">@Model.Title</h1>
+                        </div>
+                        @if (User.IsInRole("Admin") || User.IsInRole("Moderator"))
+                        {
+                            <button class="btn btn-outline-danger btn-sm" onclick="deleteTopic(@Model.Id)">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        }
+                    </div>
+                    
+                    <div class="d-flex align-items-center mb-4 pb-3 border-bottom">
+                        <div class="reply-avatar me-3">
+                            @Model.Author?.DisplayName?.Substring(0, 1).ToUpper()
+                        </div>
+                        <div>
+                            <div class="fw-bold">@Model.Author?.DisplayName</div>
+                            <small class="text-muted">
+                                <i class="bi bi-clock me-1"></i>
+                                @Model.CreatedDate.ToString("dd/MM/yyyy HH:mm")
+                            </small>
+                        </div>
+                    </div>
+                    
+                    <div class="topic-content mb-4">
+                        @Html.Raw(Model.Content.Replace("\n", "<br>"))
+                    </div>
+                    
+                    <div class="d-flex gap-3 align-items-center">
+                        @if (User.Identity?.IsAuthenticated == true)
+                        {
+                            <button class="like-btn @(hasLiked ? "liked" : "")" 
+                                    id="topicLikeBtn" 
+                                    onclick="likeTopic(@Model.Id)">
+                                <i class="bi bi-heart-fill"></i>
+                                <span id="topicLikeCount">@Model.LikeCount</span>
+                            </button>
+                        }
+                        else
+                        {
+                            <span class="like-btn">
+                                <i class="bi bi-heart"></i>
+                                <span>@Model.LikeCount</span>
+                            </span>
+                        }
+                        
+                        <span class="text-muted">
+                            <i class="bi bi-chat-dots me-1"></i>
+                            @Model.ReplyCount phản hồi
+                        </span>
+                        <span class="text-muted">
+                            <i class="bi bi-eye me-1"></i>
+                            @Model.ViewCount lượt xem
+                        </span>
+                        
+                        @if (User.Identity?.IsAuthenticated == true)
+                        {
+                            <button class="btn btn-outline-warning btn-sm ms-auto" 
+                                    onclick="reportTopic(@Model.Id)">
+                                <i class="bi bi-flag me-1"></i>Báo cáo
+                            </button>
+                        }
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Replies -->
+            <div class="card shadow-lg mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-chat-dots me-2"></i>
+                        Phản hồi (@Model.ReplyCount)
+                    </h5>
+                </div>
+                <div class="card-body">
+                    @if (Model.Replies != null && Model.Replies.Any(r => !r.IsDeleted))
+                    {
+                        foreach (var reply in Model.Replies.Where(r => !r.IsDeleted).OrderBy(r => r.CreatedDate))
+                        {
+                            <div class="reply-item" id="reply-@reply.Id">
+                                <div class="reply-author">
+                                    <div class="reply-avatar">
+                                        @reply.Author?.DisplayName?.Substring(0, 1).ToUpper()
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <div class="fw-bold">@reply.Author?.DisplayName</div>
+                                        <small class="text-muted">
+                                            <i class="bi bi-clock me-1"></i>
+                                            @reply.CreatedDate.ToString("dd/MM/yyyy HH:mm")
+                                        </small>
+                                    </div>
+                                    @if (User.IsInRole("Admin") || User.IsInRole("Moderator"))
+                                    {
+                                        <button class="btn btn-outline-danger btn-sm" 
+                                                onclick="deleteReply(@reply.Id)">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    }
+                                </div>
+                                
+                                <div class="mb-3">
+                                    @Html.Raw(reply.Content.Replace("\n", "<br>"))
+                                </div>
+                                
+                                <div class="d-flex gap-3 align-items-center">
+                                    @if (User.Identity?.IsAuthenticated == true)
+                                    {
+                                        <button class="like-btn btn-sm" 
+                                                id="replyLikeBtn-@reply.Id"
+                                                onclick="likeReply(@reply.Id)">
+                                            <i class="bi bi-heart"></i>
+                                            <span id="replyLikeCount-@reply.Id">@reply.LikeCount</span>
+                                        </button>
+                                        <button class="btn btn-link btn-sm text-warning p-0" 
+                                                onclick="reportReply(@reply.Id)">
+                                            <i class="bi bi-flag me-1"></i>Báo cáo
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small">
+                                            <i class="bi bi-heart me-1"></i>@reply.LikeCount
+                                        </span>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <p class="text-muted text-center py-4">
+                            <i class="bi bi-chat-dots display-4 d-block mb-2"></i>
+                            Chưa có phản hồi nào. Hãy là người đầu tiên!
+                        </p>
+                    }
+                </div>
+            </div>
+            
+            <!-- Reply Form -->
+            @if (User.Identity?.IsAuthenticated == true)
+            {
+                <div class="card shadow-lg">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-pencil me-2"></i>Viết phản hồi
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <form asp-controller="Replies" asp-action="Create" method="post">
+                            <input type="hidden" name="TopicId" value="@Model.Id" />
+                            <div class="mb-3">
+                                <textarea name="Content" class="form-control" rows="5" 
+                                          placeholder="Nhập phản hồi của bạn..." required></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-send me-2"></i>Gửi phản hồi
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="card shadow-lg">
+                    <div class="card-body text-center py-5">
+                        <i class="bi bi-lock display-4 text-muted mb-3"></i>
+                        <p class="text-muted mb-3">Bạn cần đăng nhập để phản hồi</p>
+                        <a asp-controller="Account" asp-action="Login" class="btn btn-primary">
+                            <i class="bi bi-box-arrow-in-right me-2"></i>Đăng nhập
+                        </a>
+                    </div>
+                </div>
+            }
+        </div>
+        
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <div class="card shadow-lg mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="bi bi-info-circle me-2"></i>Thông tin
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <small class="text-muted d-block">Tác giả</small>
+                        <strong>@Model.Author?.DisplayName</strong>
+                    </div>
+                    <div class="mb-3">
+                        <small class="text-muted d-block">Ngày tạo</small>
+                        <strong>@Model.CreatedDate.ToString("dd/MM/yyyy HH:mm")</strong>
+                    </div>
+                    <div class="mb-3">
+                        <small class="text-muted d-block">Hoạt động gần nhất</small>
+                        <strong>@((Model.LastActivityDate ?? Model.CreatedDate).ToString("dd/MM/yyyy HH:mm"))</strong>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card shadow-lg">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="bi bi-arrow-left-circle me-2"></i>Điều hướng
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <a asp-action="Index" class="btn btn-outline-primary w-100 mb-2">
+                        <i class="bi bi-list me-2"></i>Danh sách chủ đề
+                    </a>
+                    <a asp-action="Index" asp-route-categoryId="@Model.CategoryId" 
+                       class="btn btn-outline-secondary w-100">
+                        <i class="bi bi-folder me-2"></i>Chủ đề cùng chuyên mục
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function likeTopic(topicId) {
+            $.post('@Url.Action("Like", "Topics")/' + topicId, function(response) {
+                if (response.success) {
+                    $('#topicLikeCount').text(response.likeCount);
+                    $('#topicLikeBtn').toggleClass('liked', response.liked);
+                } else {
+                    alert(response.message);
+                }
+            });
+        }
+        
+        function likeReply(replyId) {
+            $.post('@Url.Action("Like", "Replies")/' + replyId, function(response) {
+                if (response.success) {
+                    $('#replyLikeCount-' + replyId).text(response.likeCount);
+                    $('#replyLikeBtn-' + replyId).toggleClass('liked', response.liked);
+                } else {
+                    alert(response.message);
+                }
+            });
+        }
+        
+        function deleteTopic(topicId) {
+            if (confirm('Bạn có chắc chắn muốn xóa chủ đề này?')) {
+                $.post('@Url.Action("Delete", "Topics")/' + topicId, function(response) {
+                    if (response.success) {
+                        alert(response.message);
+                        window.location.href = '@Url.Action("Index", "Topics")';
+                    } else {
+                        alert(response.message);
+                    }
+                });
+            }
+        }
+        
+        function deleteReply(replyId) {
+            if (confirm('Bạn có chắc chắn muốn xóa phản hồi này?')) {
+                $.post('@Url.Action("Delete", "Replies")/' + replyId, function(response) {
+                    if (response.success) {
+                        $('#reply-' + replyId).fadeOut();
+                        alert(response.message);
+                    } else {
+                        alert(response.message);
+                    }
+                });
+            }
+        }
+        
+        function reportTopic(topicId) {
+            var reason = prompt('Vui lòng nhập lý do báo cáo:');
+            if (reason && reason.trim()) {
+                $.post('@Url.Action("CreateTopicReport", "Reports")', 
+                    { topicId: topicId, reason: reason }, 
+                    function(response) {
+                        alert(response.message);
+                    }
+                );
+            }
+        }
+        
+        function reportReply(replyId) {
+            var reason = prompt('Vui lòng nhập lý do báo cáo:');
+            if (reason && reason.trim()) {
+                $.post('@Url.Action("CreateReplyReport", "Reports")', 
+                    { replyId: replyId, reason: reason }, 
+                    function(response) {
+                        alert(response.message);
+                    }
+                );
+            }
+        }
+    </script>
+}
